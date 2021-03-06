@@ -1,0 +1,96 @@
+---
+title: "Lab 3"
+author: "Ryan Pate"
+date: "3/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Use `ggplot2` to create the plots, and `dplyr` to manipulate the data frame as much as possible. You may want to rename the columns of the data frame for your convenience using rename in dplyr.
+
+1. Find the average years of education for the respondents with each marital status. Arrange your output in a meaningful order and print. Describe any patterns you find.
+
+    ```{r, include=FALSE}
+    library(dplyr)
+    library(ggplot2)
+    ```
+    
+    ```{r}
+    dat <- readxl::read_xls('/Users/ryanpate/Downloads/GSS.xls')
+    dat <- rename(dat, married = "Marital status")
+    dat <- rename(dat, ID = "Respondent id number")
+    dat <- rename(dat, year = "Gss year for this respondent")
+    dat <- rename(dat, schooling = "Highest year of school completed")
+    dat <- rename(dat, sex = "Respondents sex")
+    dat <- rename(dat, party = "Political party affiliation")
+    dat <- rename(dat, happy = "General happiness")
+    dat <- rename(dat, ballot = "Ballot used for interview")
+    
+    filtered <- dat[!(dat$schooling=="Don't know" | dat$schooling=="No answer" | dat$married=="No answer" | dat$party=="No answer"),]
+    filtered$schooling <- as.numeric(as.character(filtered$schooling))
+    edu <- filtered %>%
+      group_by(married) %>%
+      summarize(Mean_schooling = mean(schooling, na.rm=TRUE)) %>%
+      arrange(desc(Mean_schooling))
+    edu
+    ```
+
+2. Create a single data frame containing records for the better educated respondents with each marital status. A “better educated” respondent is someone who has strictly more years of education than the average among those with the same marital status. Print the structure of the data frame.
+
+    ```{r}
+    highedu <- subset(filtered, filtered$schooling > 12 & filtered$married == "Married" | filtered$schooling > 13 & filtered$married == "Divorced" | filtered$schooling > 13 & filtered$married == "Never married"
+                  | filtered$schooling > 11 & filtered$married == "Widowed" | filtered$schooling > 11 & filtered$married == "Separated" | filtered$schooling > 15 & filtered$married == "No answer")
+    
+    str(highedu)
+    ```
+
+For each of the investigation below, create at least one numerical summary and one appropriate visualization. Write a paragraph to describe your findings and the variables you used.
+
+3. How is the happiness of a respondent related to his/her marriage status? Define that a person is happy if the response to question is “Very happy” or “Pretty happy”.
+
+    ```{r}
+    happy <- subset(filtered, filtered$happy == "Very happy" | filtered$happy == "Pretty happy")
+    happymarry <- happy %>% count(married, happy, sort=TRUE)
+    happymarry
+    
+    happiness <- happy %>% count(married, happy="Happiness", sort=TRUE)
+    ggplot(happiness, aes(married, n, fill=factor(married))) + geom_col(color="black") + theme(text = element_text(size=10), axis.text.x = element_text(angle=0, hjust=0.5, size=7)) + labs(title="Happiness by Marital Status", x="Marital Status", y="Happy Individuals") +
+  theme(plot.title = element_text(size=14, hjust=0.5)) + scale_fill_brewer(palette="Blues")
+    
+    ```
+
+4. Does party affiliation affect the relationship you found in the last question?
+
+    ```{r}
+  
+    partylabs <- c("Unsure", "Near dem", "Near rep", "Independent", "Weak dem", "Weak rep", "Other", "Democrat", "Republican")
+names(partylabs) <- c("Don't know", "Ind,near dem", "Ind,near rep", "Independent", "Not str democrat", "Not str republican", "Other party", "Strong democrat", "Strong republican")
+
+
+ggplot(happy, aes(married, happy), fill=factor(married)) + geom_col(color="black") + facet_grid(. ~ party, labeller = labeller(party = partylabs)) + 
+  theme(axis.text = element_text(angle=90, hjust=1, size=7)) + labs(title="Happiness By Marital Status Of Different Political Party Affiliations", x="Marital Status", y="Happiness")
+    
+    
+    
+    ```
+
+5. How is marital status related to the education of a respondent? What are possible reasons accounting for the patterns you see?
+
+    ```{r}
+    ggplot(dat, aes(married, schooling)) + geom_col()
+    
+    ```
+
+6. Explore two more interesting questions, and answer those questions using the GSS data.
+
+    The relationship between year and level of schooling.
+    ```{r}
+    ggplot(dat, aes(schooling, year)) + geom_col()
+    
+    
+    ```
+
+The team’s exploration will be evaluated according to the general interest and the depth of the exploration.
